@@ -13,6 +13,7 @@
     "@firebasegen/default-connector": "file:dataconnect-generated/js/default-connector",
     "autoprefixer": "^10.4.21",
     "firebase": "^11.6.1",
+    "mapbox-gl": "^3.11.1",
     "postcss": "^8.5.3",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
