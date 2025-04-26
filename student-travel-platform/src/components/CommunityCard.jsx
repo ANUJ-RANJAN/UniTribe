@@ -12,7 +12,7 @@ import {
 } from "firebase/firestore";
 import { showInterestedUsers, addTripMarker } from "./Map";
 
-function EventCard({ event }) {
+function CommunityCard({ community }) {
   const [isInterested, setIsInterested] = useState(false);
   const [interestCount, setInterestCount] = useState(0);
   const [loading, setLoading] = useState(false);
@@ -20,7 +20,7 @@ function EventCard({ event }) {
   const [showingUsers, setShowingUsers] = useState(false);
 
   useEffect(() => {
-    // Check if current user is interested in this event
+    // Check if current user is interested in this community
     const checkUserInterest = async () => {
       try {
         const user = auth.currentUser;
@@ -29,8 +29,8 @@ function EventCard({ event }) {
         const interestsRef = collection(db, "interests");
         const q = query(
           interestsRef,
-          where("itemId", "==", event.id),
-          where("itemType", "==", "event"),
+          where("itemId", "==", community.id),
+          where("itemType", "==", "community"),
           where("userId", "==", user.uid)
         );
         const snapshot = await getDocs(q);
@@ -46,8 +46,8 @@ function EventCard({ event }) {
         const interestsRef = collection(db, "interests");
         const q = query(
           interestsRef,
-          where("itemId", "==", event.id),
-          where("itemType", "==", "event")
+          where("itemId", "==", community.id),
+          where("itemType", "==", "community")
         );
         const snapshot = await getDocs(q);
         setInterestCount(snapshot.size);
@@ -56,23 +56,23 @@ function EventCard({ event }) {
       }
     };
 
-    // Only run if event.id exists
-    if (event && event.id) {
+    // Only run if community.id exists
+    if (community && community.id) {
       checkUserInterest();
       getInterestCount();
     }
-  }, [event?.id]);
+  }, [community?.id]);
 
-  // New function to fetch interested users
+  // Fetch interested users
   const fetchInterestedUsers = async () => {
-    if (!event || !event.id) return;
+    if (!community || !community.id) return;
     
     try {
       const interestsRef = collection(db, "interests");
       const q = query(
         interestsRef,
-        where("itemId", "==", event.id),
-        where("itemType", "==", "event")
+        where("itemId", "==", community.id),
+        where("itemType", "==", "community")
       );
       const snapshot = await getDocs(q);
       
@@ -105,7 +105,7 @@ function EventCard({ event }) {
     const user = auth.currentUser;
     if (!user) {
       // Prompt user to sign in
-      alert("Please sign in to show interest in this event");
+      alert("Please sign in to show interest in this community");
       return;
     }
 
@@ -114,8 +114,8 @@ function EventCard({ event }) {
       const interestsRef = collection(db, "interests");
       const q = query(
         interestsRef,
-        where("itemId", "==", event.id),
-        where("itemType", "==", "event"),
+        where("itemId", "==", community.id),
+        where("itemType", "==", "community"),
         where("userId", "==", user.uid)
       );
       const snapshot = await getDocs(q);
@@ -123,8 +123,8 @@ function EventCard({ event }) {
       if (snapshot.empty) {
         // User is not interested yet, add interest
         await addDoc(interestsRef, {
-          itemId: event.id,
-          itemType: "event",
+          itemId: community.id,
+          itemType: "community",
           userId: user.uid,
           timestamp: new Date()
         });
@@ -146,14 +146,14 @@ function EventCard({ event }) {
   };
 
   const handleShowInterestedUsers = () => {
-    if (event && event.id) {
-      // First display the event on the map
-      if (event.location && event.location.lat && event.location.lng) {
-        addTripMarker(event.name, event.location.lat, event.location.lng, event.id, "event");
+    if (community && community.id && community.location) {
+      // First display the community on the map
+      if (community.location.lat && community.location.lng) {
+        addTripMarker(community.name, community.location.lat, community.location.lng, community.id, "community");
       }
       
       // Then show interested users
-      showInterestedUsers(event.id, "event");
+      showInterestedUsers(community.id, "community");
       
       // Scroll to the map
       const mapElement = document.querySelector('.map-container');
@@ -161,8 +161,8 @@ function EventCard({ event }) {
         mapElement.scrollIntoView({ behavior: 'smooth' });
       }
     } else {
-      console.error("Event ID is missing");
-      alert("Cannot show interested users: Event ID is missing");
+      console.error("Community ID or location is missing");
+      alert("Cannot show on map: Community information is incomplete");
     }
   };
 
@@ -186,39 +186,46 @@ function EventCard({ event }) {
     window.location.href = '/chat';
   };
 
-  // Debugging
-  console.log("EventCard rendering:", { eventId: event?.id, isInterested, interestCount });
-
   return (
     <div className="bg-gradient-to-br from-gray-800 to-gray-900 rounded-xl shadow-xl overflow-hidden transition-all duration-300 hover:shadow-2xl hover:scale-[1.02] border border-gray-700">
-      {event.imageUrl && (
+      {community.imageUrl ? (
         <div className="h-48 overflow-hidden relative">
           <img 
-            src={event.imageUrl} 
-            alt={event.name} 
+            src={community.imageUrl} 
+            alt={community.name} 
             className="w-full h-full object-cover transition-transform duration-700 hover:scale-110"
           />
           <div className="absolute inset-0 bg-gradient-to-t from-gray-900 to-transparent opacity-60"></div>
-          {event.date && (
-            <div className="absolute top-3 right-3 bg-indigo-600 text-white text-sm font-bold px-3 py-1 rounded-full shadow-lg">
-              {new Date(event.date.seconds * 1000).toLocaleDateString()}
-            </div>
-          )}
+          <div className="absolute top-3 right-3 bg-purple-600 text-white text-sm font-bold px-3 py-1 rounded-full shadow-lg">
+            {community.members || 0} members
+          </div>
+        </div>
+      ) : (
+        <div className="h-48 overflow-hidden relative bg-gradient-to-r from-purple-700 to-indigo-800">
+          <div className="absolute inset-0 flex items-center justify-center">
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-16 w-16 text-white opacity-30" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+            </svg>
+          </div>
+          <div className="absolute inset-0 bg-gradient-to-t from-gray-900 to-transparent opacity-60"></div>
+          <div className="absolute top-3 right-3 bg-purple-600 text-white text-sm font-bold px-3 py-1 rounded-full shadow-lg">
+            {community.members || 0} members
+          </div>
         </div>
       )}
       
       <div className="p-5">
-        <h3 className="text-xl font-bold text-white mb-2 line-clamp-1">{event.name}</h3>
+        <h3 className="text-xl font-bold text-white mb-2 line-clamp-1">{community.name}</h3>
         
         <div className="flex items-center mb-3 text-gray-300 text-sm">
-          <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-          </svg>
-          <span className="truncate">{event.location?.name || "No location specified"}</span>
+          {community.category && (
+            <span className="bg-indigo-900 text-indigo-200 text-xs px-2 py-1 rounded-full">
+              {community.category}
+            </span>
+          )}
         </div>
         
-        <p className="text-gray-400 mb-4 text-sm line-clamp-2">{event.description}</p>
+        <p className="text-gray-400 mb-4 text-sm line-clamp-2">{community.description}</p>
         
         <div className="flex justify-between items-center">
           <button
@@ -232,12 +239,14 @@ function EventCard({ event }) {
           </button>
           
           <div className="flex items-center space-x-2">
-            <button
-              onClick={handleShowInterestedUsers}
-              className="text-xs px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded-full transition-colors"
-            >
-              Show on Map
-            </button>
+            {community.location && (
+              <button
+                onClick={handleShowInterestedUsers}
+                className="text-xs px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded-full transition-colors"
+              >
+                Show on Map
+              </button>
+            )}
             
             <button
               onClick={toggleInterest}
@@ -291,4 +300,4 @@ function EventCard({ event }) {
   );
 }
 
-export default EventCard;
+export default CommunityCard;
